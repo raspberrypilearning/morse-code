@@ -2,7 +2,7 @@
 import pygame
 import time
 import gpiozero as gpio
-import _thread as thread
+from threading import Thread
 from array import array
 from pygame.locals import *
 from morse_lookup import *
@@ -27,7 +27,7 @@ class ToneSound(pygame.mixer.Sound):
                 samples[time] = -amplitude
         return samples
 
-def decoder_thread():
+def decoder():
     global key_up_time
     global buffer
     new_word = False
@@ -57,7 +57,8 @@ key_down_length = 0
 key_up_time = 0
 buffer = []
 
-thread.start_new_thread(decoder_thread, ())
+decoder_thread = Thread(target=decoder)
+decoder_thread.start()
 
 print("Ready")
 
