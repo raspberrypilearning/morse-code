@@ -431,23 +431,23 @@ while True:
 
 Double-check that your code is the same as the above. When you're done, press `Ctrl + O` then `Enter` to save. We're not finished editing, yet, though; do not run the code as it is. We still need to add code for the new thread.
 
-First we need to add some new imports to the top of our file. Scroll up to the top and find the `import` lines. We need to add `_thread` to do multithreading and `from morse_lookup import *` to give us access to the lookup code we downloaded earlier. The code should now look like this:
+First we need to add some new imports to the top of our file. Scroll up to the top and find the `import` lines. We need to add the `Thread` class, from the `threading` module, to do multithreading and `from morse_lookup import *` to give us access to the lookup code we downloaded earlier. The code should now look like this:
 
 ```python
 #!/usr/bin/python3
 import pygame
 import time
 import gpiozero as gpio
-import _thread as thread
+from threading import Thread
 from array import array
 from pygame.locals import *
 from morse_lookup import *
 ```
 
-Next, let's put in the code that will run on our separate thread. To do this, you can just define a function and this will be what is run on that thread. Add this function to your code just below the `wait_for_keyup` function:
+Next, let's put in the code that will run on our separate thread. To do this, you can just define a function and this will be what is run on that thread. Add this function to your code just below the `ToneSound` class:
 
 ```python
-def decoder_thread():
+def decoder():
     global key_up_time
     global buffer
     new_word = False
@@ -473,16 +473,17 @@ Next is an `if` statement. There are two conditions upon which we need to act he
 
 1. When there is something in the `buffer` and the gap of silence is big enough to mean a new letter. We're hard-coding the value of `1.5` seconds for this. If this situation happens we know we're in a new word, so we set the `new_word` variable to `True`. The line `bit_string = "".join(buffer)` is taking the dots and dashes in the `buffer` list, and turning them into a single string that might be something like `.-..`. We can then see if that matches a key in the Morse translation dictionary via the `try_decode` function. The `try_decode` function displays the result. We then empty the buffer, ready for the next word, with `del buffer[:]`. If we didn't do this, the buffer would keep getting bigger, and would never match any letters in the `morse_lookup.py` dictionary.
 
-1. When the gap of silence has increased to `4.5` seconds. Remember that a rule of Morse is that the gap of silence for a new word has to be three times the length of the gap that denotes a new letter: `1.5 x 3 = 4.5`. So here we set `new_word` to False, so that the `else if` condition no longer succeeds, and then put down a space character.
+2. When the gap of silence has increased to `4.5` seconds. Remember that a rule of Morse is that the gap of silence for a new word has to be three times the length of the gap that denotes a new letter: `1.5 x 3 = 4.5`. So here we set `new_word` to False, so that the `else if` condition no longer succeeds, and then put down a space character.
 
 Note that the use of `sys.stdout` is so that we can print to the screen without having to always show a new line, as with the default `print` command.
 
 The choice of `1.5` and `4.5` seconds is essentially arbitrary, but these gaps are about right for someone who is new to Morse, who will be going quite slowly. As your skill improves, you may wish to reduce these numbers in your code. 
 
-Press `Ctrl + O` then `Enter` to save. There is one more thing we need to do before we can run our code, which is to add a line of code that will launch the new thread. This has to be done from the main thread, so scroll down and find the `print("Ready")` line. Add the line below just before it:
+Press `Ctrl + O` then `Enter` to save. There is one more thing we need to do before we can run our code, which is to add a line of code that will launch the new thread. This has to be done from the main thread, so scroll down and find the `print("Ready")` line. Add the lines below just before it:
 
 ```bash
-thread.start_new_thread(decoder_thread, ())
+decoder_thread = Thread(target=decoder)
+decoder_thread.start()
 ```
 
 The final code should look like the example below; remember to make the necessary changes if you're using a pull down configuration instead of pull up. 
@@ -492,7 +493,7 @@ The final code should look like the example below; remember to make the necessar
 import pygame
 import time
 import gpiozero as gpio
-import _thread as thread
+from threading import Thread
 from array import array
 from pygame.locals import *
 from morse_lookup import *
@@ -517,7 +518,7 @@ class ToneSound(pygame.mixer.Sound):
                 samples[time] = -amplitude
         return samples
 
-def decoder_thread():
+def decoder():
     global key_up_time
     global buffer
     new_word = False
@@ -547,7 +548,8 @@ key_down_length = 0
 key_up_time = 0
 buffer = []
 
-thread.start_new_thread(decoder_thread, ())
+decoder_thread = Thread(target=decoder)
+decoder_thread.start()
 
 print("Ready")
 
